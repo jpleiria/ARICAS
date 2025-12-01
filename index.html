@@ -215,5 +215,50 @@
     render();
 </script>
 
+
+<!-- Popup Customizado -->
+<div id="critical-popup" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden">
+  <div class="bg-red-700 p-6 rounded-xl shadow-xl text-center max-w-xs border-2 border-white">
+    <h2 class="text-2xl font-bold mb-3">⚠️ ALERTA CRÍTICO ⚠️</h2>
+    <p id="popup-text" class="text-lg mb-4">Bombeiro em perigo</p>
+    <button onclick="closePopup()" class="bg-white text-red-700 font-bold px-4 py-2 rounded">OK</button>
+  </div>
+</div>
+
+<script>
+// Registo de alertas já mostrados por bombeiro
+const popupShown = {1:false,2:false,3:false,4:false,5:false,6:false};
+
+function closePopup(){
+    document.getElementById('critical-popup').classList.add('hidden');
+}
+
+// Reforço do intervalo existente
+setInterval(() => {
+    for (let i = 1; i <= 6; i++) {
+        const f = FF[i];
+        if (f.entryTimestamp) {
+            const now = Date.now();
+            const elapsedMin = (now - f.entryTimestamp) / 60000;
+            const remaining = Math.floor(f.initialMinutes - elapsedMin);
+
+            if (remaining <= 5 && remaining >= 0) {
+                const tab = document.getElementById(`tab-${i}`);
+                if (tab) tab.classList.add('animate-pulse','bg-red-800');
+
+                // Alertas combinados (C): Browser + Popup custom apenas 1 vez
+                if (!popupShown[i]) {
+                    alert(`Bombeiro ${i} deve sair imediatamente!`);
+                    document.getElementById('popup-text').textContent = `Bombeiro ${i} tem menos de 5 minutos!`;
+                    document.getElementById('critical-popup').classList.remove('hidden');
+                    popupShown[i] = true;
+                }
+            }
+        }
+    }
+}, 30000); // verifica a cada 30s para maior precisão
+
+</script>
+
 </body>
 </html>
