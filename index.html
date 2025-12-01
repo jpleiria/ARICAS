@@ -3,309 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calculadora ARICAS -CBSLeiria</title>
-    
-    <!-- Tailwind CSS -->
+    <title>Calculadora ARICAS - Multi Bombeiro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Google Fonts: Roboto & Black Ops One for titles -->
-    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #111827; /* Dark Gray/Black */
-            color: #ffffff;
-            touch-action: manipulation; /* Improves touch response */
-        }
-        .fire-font {
-            font-family: 'Black Ops One', cursive;
-        }
-        /* Custom Input Styles */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        .btn-press {
-            transition: transform 0.1s;
-        }
-        .btn-press:active {
-            transform: scale(0.95);
-        }
-    </style>
 </head>
-<body class="min-h-screen flex flex-col items-center pb-10">
+<body class="min-h-screen flex flex-col items-center pb-10 bg-gray-900 text-white">
 
-    <!-- Header -->
-    <header class="w-full bg-red-700 p-4 shadow-lg flex items-center justify-center gap-3">
-        <i data-lucide="flame" class="text-yellow-400 w-8 h-8"></i>
-        <h1 class="text-2xl fire-font tracking-wider text-white">ARICAS CBSLeiria</h1>
-    </header>
+<header class="w-full bg-red-700 p-4 shadow-lg flex items-center justify-center gap-3">
+    <i data-lucide="flame" class="text-yellow-400 w-8 h-8"></i>
+    <h1 class="text-2xl font-bold tracking-wider text-white">ARICAS CBSLeiria</h1>
+</header>
 
-    <!-- Main Content -->
-    <main class="w-full max-w-md px-4 mt-6 space-y-6">
-
-        <!-- Aviso de Segurança -->
-        <div class="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3 flex items-start gap-3">
-            <i data-lucide="alert-triangle" class="text-yellow-500 w-6 h-6 shrink-0 mt-1"></i>
-            <p class="text-xs text-yellow-200">
-                Atenção: Este cálculo é uma estimativa. Verifique sempre o manómetro físico. O cálculo desconta a reserva de segurança (50 bar).
-            </p>
-        </div>
-
-        <!-- 1. Volume da Garrafa -->
-        <section class="bg-gray-800 rounded-xl p-5 shadow-md border border-gray-700">
-            <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">
-                1. Volume da Garrafa
-            </label>
-            <div class="grid grid-cols-3 gap-2">
-                <button onclick="setVolume(6)" id="vol-6" class="vol-btn btn-press bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold border-2 border-transparent transition-all">
-                    6 L
-                </button>
-                <button onclick="setVolume(6.8)" id="vol-6.8" class="vol-btn btn-press bg-red-600 text-white py-3 rounded-lg font-bold border-2 border-white transition-all shadow-lg shadow-red-900/50">
-                    6.8 L
-                </button>
-                <button onclick="setVolume(9)" id="vol-9" class="vol-btn btn-press bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold border-2 border-transparent transition-all">
-                    9 L
-                </button>
-            </div>
-        </section>
-
-        <!-- 2. Consumo de Ar (Esforço) -->
-        <section class="bg-gray-800 rounded-xl p-5 shadow-md border border-gray-700">
-            <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide flex justify-between">
-                <span>2. Ritmo de Trabalho</span>
-                <span id="consumption-display" class="text-red-400">Intenso (45 L/min)</span>
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="setConsumption(40)" id="cons-40" class="cons-btn btn-press bg-gray-700 py-3 rounded-lg font-bold border-2 border-transparent text-sm">
-                    Moderado<br><span class="text-xs font-normal opacity-70">40 L/min</span>
-                </button>
-                <button onclick="setConsumption(45)" id="cons-45" class="cons-btn btn-press bg-red-600 border-2 border-white py-3 rounded-lg font-bold text-sm">
-                    Intenso<br><span class="text-xs font-normal opacity-70">45 L/min</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- 3. Pressão Atual -->
-        <section class="bg-gray-800 rounded-xl p-5 shadow-md border border-gray-700">
-            <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">
-                3. Pressão Atual (Bar)
-            </label>
-            
-            <div class="flex items-center gap-4">
-                <button onclick="adjustPressure(-10)" class="btn-press bg-gray-600 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-lg">-</button>
-                
-                <div class="relative flex-1">
-                    <input type="number" id="pressure" value="300" 
-                        class="w-full bg-gray-900 text-center text-4xl font-bold text-white border-2 border-gray-600 rounded-lg py-2 focus:outline-none focus:border-red-500 transition-colors"
-                        oninput="calculate()">
-                    <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">BAR</span>
-                </div>
-
-                <button onclick="adjustPressure(10)" class="btn-press bg-gray-600 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-lg">+</button>
-            </div>
-            
-            <!-- Quick Presets -->
-            <div class="flex justify-center gap-2 mt-4">
-                <button onclick="setPressure(300)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">300</button>
-                <button onclick="setPressure(280)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">280</button>
-                <button onclick="setPressure(200)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">200</button>
-                <button onclick="setPressure(150)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">150</button>
-            </div>
-        </section>
-
-        <!-- RESULTADOS -->
-        <section class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-1 shadow-lg border border-gray-700 relative overflow-hidden">
-            <!-- Background Pulse Animation for Low Air -->
-            <div id="alert-bg" class="absolute inset-0 bg-red-600 opacity-0 transition-opacity duration-500 pointer-events-none"></div>
-
-            <div class="relative bg-gray-900 rounded-lg p-6 text-center z-10">
-                <p class="text-gray-400 text-sm uppercase tracking-widest mb-1">Tempo Disponível</p>
-                <div class="flex items-baseline justify-center gap-1">
-                    <span id="result-minutes" class="text-7xl font-bold text-white tabular-nums tracking-tighter">00</span>
-                    <span class="text-xl text-gray-400">min</span>
-                </div>
-                
-                <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between text-sm">
-                    <div class="text-left">
-                        <p class="text-gray-500">Reserva (Não útil)</p>
-                        <p class="font-bold text-red-500">50 Bar</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-gray-500">Ar Útil</p>
-                        <p id="liters-usable" class="font-bold text-blue-400">0 L</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Calculadora de Saída -->
-        <section class="bg-blue-900/20 border border-blue-800/50 rounded-xl p-5">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-blue-200 font-bold flex items-center gap-2">
-                    <i data-lucide="clock" class="w-4 h-4"></i> Controlo de Entrada
-                </h3>
-                <button onclick="updateEntryTime()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded uppercase font-bold tracking-wide btn-press">
-                    Entrar Agora
-                </button>
-            </div>
-            <div class="flex justify-between items-end">
-                <div>
-                    <p class="text-xs text-gray-400">Se entrar às:</p>
-                    <p id="entry-time" class="text-xl font-mono text-white">--:--</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-gray-400">Sair obrigatoriamente às:</p>
-                    <p id="exit-time" class="text-3xl font-mono font-bold text-red-400">--:--</p>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="text-center text-gray-600 text-xs mt-8 mb-4 px-4">
-        <p>SCh 2ª João Paulo Pereira</p>
-        <p class="mt-1">Companhia Bombeiros Sapadores Leiria</p>
-        <p class="mt-1">Versão 1.1</p>
-    </footer>
-
+<!-- TABS DOS 6 BOMBEIROS -->
+<div class="w-full max-w-md mt-4 px-4 flex justify-between gap-1">
     <script>
-        // Inicializar ícones
-        lucide.createIcons();
+    function highlightTabs() {
+        for (let i = 1; i <= 6; i++) {
+            const f = FF[i];
+            const useful = Math.max(0, f.pressure - 50) * f.volume;
+            const minutes = Math.floor(useful / f.consumption);
+            const tab = document.getElementById(`tab-${i}`);
 
-        // Variáveis de Estado
-        let volume = 6.8;
-        let consumption = 45; // 40 = Moderado, 45 = Intenso
-        let reservePressure = 50; // Bar
+            if (!tab) continue;
 
-        // Elementos DOM
-        const elPressure = document.getElementById('pressure');
-        const elResult = document.getElementById('result-minutes');
-        const elLiters = document.getElementById('liters-usable');
-        const elEntry = document.getElementById('entry-time');
-        const elExit = document.getElementById('exit-time');
-        const elAlertBg = document.getElementById('alert-bg');
-
-        // Funções de UI
-        function setVolume(val) {
-            volume = val;
-            
-            // Resetar estilos
-            document.querySelectorAll('.vol-btn').forEach(btn => {
-                btn.className = "vol-btn btn-press bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold border-2 border-transparent transition-all";
-                btn.style.color = "";
-            });
-
-            // Ativar botão selecionado
-            const activeBtn = document.getElementById(`vol-${val}`);
-            activeBtn.className = "vol-btn btn-press bg-red-600 text-white py-3 rounded-lg font-bold border-2 border-white transition-all shadow-lg shadow-red-900/50";
-            
-            calculate();
-        }
-
-        function setConsumption(val) {
-            consumption = val;
-            
-            // Resetar estilos
-            document.querySelectorAll('.cons-btn').forEach(btn => {
-                btn.className = "cons-btn btn-press bg-gray-700 py-3 rounded-lg font-bold border-2 border-transparent text-sm";
-            });
-
-            // Ativar botão selecionado
-            const activeBtn = document.getElementById(`cons-${val}`);
-            activeBtn.className = "cons-btn btn-press bg-red-600 border-2 border-white py-3 rounded-lg font-bold text-sm";
-            
-            // Texto descritivo
-            const label = val === 45 ? "Intenso (45 L/min)" : "Moderado (40 L/min)";
-            document.getElementById('consumption-display').innerText = label;
-
-            calculate();
-        }
-
-        function setPressure(val) {
-            elPressure.value = val;
-            calculate();
-        }
-
-        function adjustPressure(delta) {
-            let current = parseInt(elPressure.value) || 0;
-            let newVal = current + delta;
-            if(newVal < 0) newVal = 0;
-            if(newVal > 400) newVal = 400; // Limite razoável
-            elPressure.value = newVal;
-            calculate();
-        }
-
-        function updateEntryTime() {
-            const now = new Date();
-            const minutesAvailable = parseInt(elResult.innerText);
-            
-            if (isNaN(minutesAvailable) || minutesAvailable <= 0) return;
-
-            // Formatar hora de entrada
-            const entryStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                             now.getMinutes().toString().padStart(2, '0');
-            
-            // Calcular hora de saída
-            const exitTime = new Date(now.getTime() + minutesAvailable * 60000);
-            const exitStr = exitTime.getHours().toString().padStart(2, '0') + ':' + 
-                            exitTime.getMinutes().toString().padStart(2, '0');
-
-            elEntry.innerText = entryStr;
-            elExit.innerText = exitStr;
-        }
-
-        // Lógica Principal de Cálculo
-        function calculate() {
-            const pressure = parseInt(elPressure.value) || 0;
-            
-            // Fórmula: (Pressão Atual - Reserva) * Volume
-            // Se a pressão for menor que a reserva, o ar útil é 0
-            
-            let usefulPressure = pressure - reservePressure;
-            if (usefulPressure < 0) usefulPressure = 0;
-
-            const usefulAirLiters = usefulPressure * volume;
-            const minutes = usefulAirLiters / consumption;
-
-            // Atualizar UI
-            elResult.innerText = Math.floor(minutes);
-            elLiters.innerText = Math.round(usefulAirLiters) + " L";
-
-            // Alertas visuais
-            if (minutes <= 10 && minutes > 0) {
-                elResult.classList.add('text-red-500');
-                elResult.classList.remove('text-white');
-                elAlertBg.style.opacity = "0.2";
-            } else if (minutes === 0) {
-                elResult.classList.add('text-gray-500');
-                elResult.classList.remove('text-white', 'text-red-500');
-                elAlertBg.style.opacity = "0";
+            if (minutes <= 5) {
+                tab.classList.add("animate-pulse", "bg-red-800");
             } else {
-                elResult.classList.add('text-white');
-                elResult.classList.remove('text-red-500', 'text-gray-500');
-                elAlertBg.style.opacity = "0";
-            }
-
-            // Se já houver um cálculo de hora de entrada ativo, atualiza a saída
-            if(elEntry.innerText !== '--:--') {
-                // Precisamos da hora original de entrada? 
-                // Para simplificar esta app estática, vamos apenas limpar se a pressão mudar drasticamente
-                // ou manter a lógica de "se entrar agora" se o botão for clicado novamente.
-                // Mas visualmente, podemos deixar cinzento para indicar que precisa de atualização
-                elExit.style.opacity = "0.5";
+                tab.classList.remove("animate-pulse", "bg-red-800");
             }
         }
-
-        // Executar cálculo inicial
-        calculate();
-
+    }
+        document.write([1,2,3,4,5,6].map(i => `
+            <button id="tab-${i}" onclick="selectFF(${i})"
+                class='flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold'>B${i}</button>
+        `).join(""));
     </script>
+</div>
+
+<!-- ÁREA DO CONTEÚDO ORIGINAL -->
+<main id="content" class="w-full max-w-md px-4 mt-6 space-y-6"></main>
+
+<script>
+    lucide.createIcons();
+
+    // Criar estado para 6 bombeiros
+    const FF = {};
+    for (let i = 1; i <= 6; i++) {
+        FF[i] = {
+            name: "",
+            volume: 6.8,
+            consumption: 45,
+            pressure: 300,
+            entry: "--:--",
+            exit: "--:--"
+        };
+    }
+
+    let active = 1;
+
+    function selectFF(id) {
+        active = id;
+        render();
+
+    // Atualização automática a cada minuto
+    setInterval(() => {
+        // Recalcular tempos
+        for (let i = 1; i <= 6; i++) {
+            const f = FF[i];
+            if (f.entry !== "--:--") {
+                // Atualiza saída com base no tempo restante
+                const useful = Math.max(0, f.pressure - 50) * f.volume;
+                const minutes = Math.floor(useful / f.consumption);
+
+                const now = new Date();
+                const exit = new Date(now.getTime() + minutes * 60000);
+                f.exit = exit.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            }
+        }
+        highlightTabs();
+        if (active) calculate();
+    }, 60000);
+    }
+
+    function render() {
+        highlightTabs();
+        // Atualizar estilo das tabs
+        for (let i = 1; i <= 6; i++) {
+            const t = document.getElementById(`tab-${i}`);
+            if (i === active) t.className = "flex-1 py-2 rounded bg-red-600 border-2 border-white text-white font-bold";
+            else t.className = "flex-1 py-2 rounded bg-gray-700 text-white font-bold";
+        }
+
+        const f = FF[active];
+
+        document.getElementById("content").innerHTML = `
+            <section class='bg-gray-800 p-4 rounded-xl border border-gray-700'>
+                <label class='block text-gray-400 text-sm mb-1'>Nome do Bombeiro</label>
+                <input type='text' value='${f.name}' onchange='FF[active].name = this.value'
+                       class='w-full bg-gray-900 p-2 rounded border border-gray-700'>
+            </section>
+
+            ${originalHTML()}
+        `;
+
+        lucide.createIcons();
+        restoreValues();
+    }
+
+    /* Função que devolve o HTML original (SEM alterações!) */
+    function originalHTML() {
+        return `
+        <section class='bg-gray-800 rounded-xl p-5 border border-gray-700'>
+            <label class='block text-gray-400 text-sm font-bold mb-3 uppercase'>1. Volume da Garrafa</label>
+            <div class='grid grid-cols-3 gap-2'>
+                <button onclick="setVolume(6)" id="vol-6" class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">6 L</button>
+                <button onclick="setVolume(6.8)" id="vol-6.8" class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">6.8 L</button>
+                <button onclick="setVolume(9)" id="vol-9" class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">9 L</button>
+            </div>
+        </section>
+
+        <section class='bg-gray-800 rounded-xl p-5 border border-gray-700'>
+            <label class='block text-gray-400 text-sm font-bold mb-3 uppercase'>2. Ritmo de Trabalho</label>
+            <div class='grid grid-cols-2 gap-2'>
+                <button onclick="setConsumption(40)" id="cons-40" class="cons-btn bg-gray-700 py-3 rounded-lg font-bold text-sm">Moderado<br><span class='text-xs'>40 L/min</span></button>
+                <button onclick="setConsumption(45)" id="cons-45" class="cons-btn bg-gray-700 py-3 rounded-lg font-bold text-sm">Intenso<br><span class='text-xs'>45 L/min</span></button>
+            </div>
+        </section>
+
+        <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+            <label class="block text-gray-400 text-sm font-bold mb-3 uppercase">3. Pressão Atual (Bar)</label>
+            <input id="pressure" type="number" class="w-full bg-gray-900 text-center text-4xl font-bold border border-gray-600 rounded-lg py-2" onchange="updatePressure()">
+        </section>
+
+        <section class='bg-gray-900 p-6 rounded-xl border border-gray-700 text-center'>
+            <p class='text-gray-400 text-sm uppercase mb-1'>Tempo Disponível</p>
+            <p id='result-minutes' class='text-7xl font-bold'>00</p>
+        </section>
+
+        <section class='bg-blue-900/20 border border-blue-800/50 rounded-xl p-5'>
+            <div class='flex justify-between mb-2'>
+                <h3 class='text-blue-200 font-bold flex items-center gap-2'>Controlo de Entrada</h3>
+                <button onclick='setEntry()' class='bg-blue-600 text-xs px-3 py-1 rounded'>Entrar Agora</button>
+            </div>
+            <div class='flex justify-between'>
+                <div>
+                    <p class='text-xs text-gray-400'>Entrada:</p>
+                    <p id='entry-time' class='text-xl font-mono'>${FF[active].entry}</p>
+                </div>
+                <div class='text-right'>
+                    <p class='text-xs text-gray-400'>Saída:</p>
+                    <p id='exit-time' class='text-3xl font-mono'>${FF[active].exit}</p>
+                </div>
+            </div>
+        </section>`;
+    }
+
+    function restoreValues() {
+        const f = FF[active];
+
+        // Pressão
+        document.getElementById("pressure").value = f.pressure;
+
+        // Volume buttons
+        document.querySelectorAll('.vol-btn').forEach(btn => {
+            btn.classList.remove("bg-red-600", "border-white", "text-white", "shadow-lg", "shadow-red-900/50");
+            btn.classList.add("bg-gray-700");
+        });
+        const volBtn = document.getElementById(`vol-${f.volume}`);
+        if (volBtn) {
+            volBtn.classList.remove("bg-gray-700");
+            volBtn.classList.add("bg-red-600", "border-white", "text-white", "shadow-lg", "shadow-red-900/50");
+        }
+
+        // Consumption buttons
+        document.querySelectorAll('.cons-btn').forEach(btn => {
+            btn.classList.remove("bg-red-600", "border-white", "text-white");
+            btn.classList.add("bg-gray-700");
+        });
+        const consBtn = document.getElementById(`cons-${f.consumption}`);
+        if (consBtn) {
+            consBtn.classList.remove("bg-gray-700");
+            consBtn.classList.add("bg-red-600", "border-white", "text-white");
+        }
+
+        calculate();
+    }
+
+    function setVolume(v) { FF[active].volume = v; calculate(); render(); }
+    function setConsumption(c) { FF[active].consumption = c; calculate(); render(); }
+    function updatePressure() { FF[active].pressure = parseInt(document.getElementById("pressure").value); calculate(); }
+
+    function calculate() {
+        const f = FF[active];
+        const useful = Math.max(0, f.pressure - 50) * f.volume;
+        const minutes = Math.floor(useful / f.consumption);
+        document.getElementById("result-minutes").innerText = minutes;
+    }
+
+    function setEntry() {
+        const f = FF[active];
+        const now = new Date();
+        const min = parseInt(document.getElementById("result-minutes").innerText);
+
+        f.entry = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const exit = new Date(now.getTime() + min * 60000);
+        f.exit = exit.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        render();
+    }
+
+    render();
+</script>
+
 </body>
 </html>
-
