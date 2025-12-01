@@ -15,206 +15,140 @@
 </header>
 
 <!-- TABS DOS 6 BOMBEIROS -->
-<div class="w-full max-w-md mt-4 px-4 flex justify-between gap-1">
-    <script>
-    function highlightTabs() {
-        for (let i = 1; i <= 6; i++) {
-            const f = FF[i];
-            const useful = Math.max(0, f.pressure - 50) * f.volume;
-            const minutes = Math.floor(useful / f.consumption);
-            const tab = document.getElementById(`tab-${i}`);
-
-            if (!tab) continue;
-
-            if (minutes <= 5) {
-                tab.classList.add("animate-pulse", "bg-red-800");
-            } else {
-                tab.classList.remove("animate-pulse", "bg-red-800");
-            }
-        }
-    }
-        document.write([1,2,3,4,5,6].map(i => `
-            <button id="tab-${i}" onclick="selectFF(${i})"
-                class='flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold'>B${i}</button>
-        `).join(""));
-    </script>
+<div class="w-full max-w-md mt-4 px-4 flex justify-between gap-1" id="tabs-container">
+    <button id="tab-1" onclick="selectFF(1)" class="flex-1 py-2 rounded bg-red-600 border-2 border-white text-white text-sm font-bold">
+        B1
+    </button>
+    <button id="tab-2" onclick="selectFF(2)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B2</button>
+    <button id="tab-3" onclick="selectFF(3)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B3</button>
+    <button id="tab-4" onclick="selectFF(4)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B4</button>
+    <button id="tab-5" onclick="selectFF(5)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B5</button>
+    <button id="tab-6" onclick="selectFF(6)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B6</button>
 </div>
 
-<!-- ÁREA DO CONTEÚDO ORIGINAL -->
-<main id="content" class="w-full max-w-md px-4 mt-6 space-y-6"></main>
+<!-- ÁREA DO CONTEÚDO -->
+<main class="w-full max-w-md px-4 mt-6 space-y-6">
 
-<script>
-    lucide.createIcons();
+    <!-- Nome do Bombeiro -->
+    <section class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+        <label class="block text-gray-400 text-sm mb-1">Nome do Bombeiro</label>
+        <input id="ff-name" type="text"
+               class="w-full bg-gray-900 p-2 rounded border border-gray-700"
+               placeholder="Ex: Bombeiro Silva"
+               oninput="updateName(this.value)">
+    </section>
 
-    // Criar estado para 6 bombeiros
-    const FF = {};
-    for (let i = 1; i <= 6; i++) {
-        FF[i] = {
-            name: "",
-            volume: 6.8,
-            consumption: 45,
-            pressure: 300,
-            entry: "--:--",
-            exit: "--:--"
-        };
-    }
+    <!-- 1. Volume da Garrafa -->
+    <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+        <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">
+            1. Volume da Garrafa
+        </label>
+        <div class="grid grid-cols-3 gap-2">
+            <button onclick="setVolume(6)" id="vol-6"
+                    class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">
+                6 L
+            </button>
+            <button onclick="setVolume(6.8)" id="vol-6.8"
+                    class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">
+                6.8 L
+            </button>
+            <button onclick="setVolume(9)" id="vol-9"
+                    class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">
+                9 L
+            </button>
+        </div>
+    </section>
 
-    let active = 1;
+    <!-- 2. Consumo de Ar (Esforço) -->
+    <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+        <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide flex justify-between">
+            <span>2. Ritmo de Trabalho</span>
+            <span id="consumption-display" class="text-red-400 text-xs">Intenso (45 L/min)</span>
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="setConsumption(40)" id="cons-40"
+                    class="cons-btn bg-gray-700 py-3 rounded-lg font-bold text-sm">
+                Moderado<br><span class="text-xs opacity-70 font-normal">40 L/min</span>
+            </button>
+            <button onclick="setConsumption(45)" id="cons-45"
+                    class="cons-btn bg-gray-700 py-3 rounded-lg font-bold text-sm">
+                Intenso<br><span class="text-xs opacity-70 font-normal">45 L/min</span>
+            </button>
+        </div>
+    </section>
 
-    function selectFF(id) {
-        active = id;
-        render();
+    <!-- 3. Pressão Atual -->
+    <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+        <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">
+            3. Pressão Atual (Bar)
+        </label>
 
-    // Atualização automática a cada minuto
-    setInterval(() => {
-        // Recalcular tempos
-        for (let i = 1; i <= 6; i++) {
-            const f = FF[i];
-            if (f.entry !== "--:--") {
-                // Atualiza saída com base no tempo restante
-                const useful = Math.max(0, f.pressure - 50) * f.volume;
-                const minutes = Math.floor(useful / f.consumption);
+        <div class="flex items-center gap-4">
+            <button onclick="adjustPressure(-10)"
+                    class="bg-gray-600 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-lg">
+                -
+            </button>
 
-                const now = new Date();
-                const exit = new Date(now.getTime() + minutes * 60000);
-                f.exit = exit.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            }
-        }
-        highlightTabs();
-        if (active) calculate();
-    }, 60000);
-    }
-
-    function render() {
-        highlightTabs();
-        // Atualizar estilo das tabs
-        for (let i = 1; i <= 6; i++) {
-            const t = document.getElementById(`tab-${i}`);
-            if (i === active) t.className = "flex-1 py-2 rounded bg-red-600 border-2 border-white text-white font-bold";
-            else t.className = "flex-1 py-2 rounded bg-gray-700 text-white font-bold";
-        }
-
-        const f = FF[active];
-
-        document.getElementById("content").innerHTML = `
-            <section class='bg-gray-800 p-4 rounded-xl border border-gray-700'>
-                <label class='block text-gray-400 text-sm mb-1'>Nome do Bombeiro</label>
-                <input type='text' value='${f.name}' onchange='FF[active].name = this.value'
-                       class='w-full bg-gray-900 p-2 rounded border border-gray-700'>
-            </section>
-
-            ${originalHTML()}
-        `;
-
-        lucide.createIcons();
-        restoreValues();
-    }
-
-    /* Função que devolve o HTML original (SEM alterações!) */
-    function originalHTML() {
-        return `
-        <section class='bg-gray-800 rounded-xl p-5 border border-gray-700'>
-            <label class='block text-gray-400 text-sm font-bold mb-3 uppercase'>1. Volume da Garrafa</label>
-            <div class='grid grid-cols-3 gap-2'>
-                <button onclick="setVolume(6)" id="vol-6" class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">6 L</button>
-                <button onclick="setVolume(6.8)" id="vol-6.8" class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">6.8 L</button>
-                <button onclick="setVolume(9)" id="vol-9" class="vol-btn bg-gray-700 py-3 rounded-lg font-bold">9 L</button>
+            <div class="relative flex-1">
+                <input type="number" id="pressure" value="300"
+                       class="w-full bg-gray-900 text-center text-4xl font-bold text-white border-2 border-gray-600 rounded-lg py-2 focus:outline-none focus:border-red-500 transition-colors"
+                       oninput="updatePressureInput()">
+                <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">BAR</span>
             </div>
-        </section>
 
-        <section class='bg-gray-800 rounded-xl p-5 border border-gray-700'>
-            <label class='block text-gray-400 text-sm font-bold mb-3 uppercase'>2. Ritmo de Trabalho</label>
-            <div class='grid grid-cols-2 gap-2'>
-                <button onclick="setConsumption(40)" id="cons-40" class="cons-btn bg-gray-700 py-3 rounded-lg font-bold text-sm">Moderado<br><span class='text-xs'>40 L/min</span></button>
-                <button onclick="setConsumption(45)" id="cons-45" class="cons-btn bg-gray-700 py-3 rounded-lg font-bold text-sm">Intenso<br><span class='text-xs'>45 L/min</span></button>
+            <button onclick="adjustPressure(10)"
+                    class="bg-gray-600 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-lg">
+                +
+            </button>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="flex justify-center gap-2 mt-4">
+            <button onclick="setPressure(300)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">300</button>
+            <button onclick="setPressure(280)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">280</button>
+            <button onclick="setPressure(200)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">200</button>
+            <button onclick="setPressure(150)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">150</button>
+        </div>
+    </section>
+
+    <!-- RESULTADOS + BARRA DE PROGRESSO -->
+    <section class="bg-gray-900 rounded-xl p-6 border border-gray-700 text-center">
+        <p class="text-gray-400 text-sm uppercase tracking-widest mb-1">Tempo Disponível</p>
+        <div class="flex items-baseline justify-center gap-1">
+            <span id="result-minutes" class="text-7xl font-bold text-white tabular-nums tracking-tighter">00</span>
+            <span class="text-xl text-gray-400">min</span>
+        </div>
+
+        <div class="w-full bg-gray-700 rounded-full h-4 mt-4 overflow-hidden">
+            <div id="progress-bar"
+                 class="h-4 rounded-full transition-all duration-500"
+                 style="width: 100%; background:#22c55e;"></div>
+        </div>
+    </section>
+
+    <!-- Controlo de Entrada -->
+    <section class="bg-blue-900/20 border border-blue-800/50 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-blue-200 font-bold flex items-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4"></i> Controlo de Entrada
+            </h3>
+            <button onclick="enterNow()"
+                    class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded uppercase font-bold tracking-wide">
+                Entrar Agora
+            </button>
+        </div>
+        <div class="flex justify-between items-end">
+            <div>
+                <p class="text-xs text-gray-400">Se entrou às:</p>
+                <p id="entry-time" class="text-xl font-mono text-white">--:--</p>
             </div>
-        </section>
-
-        <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
-            <label class="block text-gray-400 text-sm font-bold mb-3 uppercase">3. Pressão Atual (Bar)</label>
-            <input id="pressure" type="number" class="w-full bg-gray-900 text-center text-4xl font-bold border border-gray-600 rounded-lg py-2" onchange="updatePressure()">
-        </section>
-
-        <section class='bg-gray-900 p-6 rounded-xl border border-gray-700 text-center'>
-            <p class='text-gray-400 text-sm uppercase mb-1'>Tempo Disponível</p>
-            <p id='result-minutes' class='text-7xl font-bold'>00</p>
-        </section>
-
-        <section class='bg-blue-900/20 border border-blue-800/50 rounded-xl p-5'>
-            <div class='flex justify-between mb-2'>
-                <h3 class='text-blue-200 font-bold flex items-center gap-2'>Controlo de Entrada</h3>
-                <button onclick='setEntry()' class='bg-blue-600 text-xs px-3 py-1 rounded'>Entrar Agora</button>
+            <div class="text-right">
+                <p class="text-xs text-gray-400">Deve sair às:</p>
+                <p id="exit-time" class="text-3xl font-mono font-bold text-red-400">--:--</p>
             </div>
-            <div class='flex justify-between'>
-                <div>
-                    <p class='text-xs text-gray-400'>Entrada:</p>
-                    <p id='entry-time' class='text-xl font-mono'>${FF[active].entry}</p>
-                </div>
-                <div class='text-right'>
-                    <p class='text-xs text-gray-400'>Saída:</p>
-                    <p id='exit-time' class='text-3xl font-mono'>${FF[active].exit}</p>
-                </div>
-            </div>
-        </section>`;
-    }
-
-    function restoreValues() {
-        const f = FF[active];
-
-        // Pressão
-        document.getElementById("pressure").value = f.pressure;
-
-        // Volume buttons
-        document.querySelectorAll('.vol-btn').forEach(btn => {
-            btn.classList.remove("bg-red-600", "border-white", "text-white", "shadow-lg", "shadow-red-900/50");
-            btn.classList.add("bg-gray-700");
-        });
-        const volBtn = document.getElementById(`vol-${f.volume}`);
-        if (volBtn) {
-            volBtn.classList.remove("bg-gray-700");
-            volBtn.classList.add("bg-red-600", "border-white", "text-white", "shadow-lg", "shadow-red-900/50");
-        }
-
-        // Consumption buttons
-        document.querySelectorAll('.cons-btn').forEach(btn => {
-            btn.classList.remove("bg-red-600", "border-white", "text-white");
-            btn.classList.add("bg-gray-700");
-        });
-        const consBtn = document.getElementById(`cons-${f.consumption}`);
-        if (consBtn) {
-            consBtn.classList.remove("bg-gray-700");
-            consBtn.classList.add("bg-red-600", "border-white", "text-white");
-        }
-
-        calculate();
-    }
-
-    function setVolume(v) { FF[active].volume = v; calculate(); render(); }
-    function setConsumption(c) { FF[active].consumption = c; calculate(); render(); }
-    function updatePressure() { FF[active].pressure = parseInt(document.getElementById("pressure").value); calculate(); }
-
-    function calculate() {
-        const f = FF[active];
-        const useful = Math.max(0, f.pressure - 50) * f.volume;
-        const minutes = Math.floor(useful / f.consumption);
-        document.getElementById("result-minutes").innerText = minutes;
-    }
-
-    function setEntry() {
-        const f = FF[active];
-        const now = new Date();
-        const min = parseInt(document.getElementById("result-minutes").innerText);
-
-        f.entry = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        const exit = new Date(now.getTime() + min * 60000);
-        f.exit = exit.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-        render();
-    }
-
-    render();
-</script>
-
+        </div>
+    </section>
+</main>
 
 <!-- Popup Customizado -->
 <div id="critical-popup" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden">
@@ -226,38 +160,317 @@
 </div>
 
 <script>
-// Registo de alertas já mostrados por bombeiro
-const popupShown = {1:false,2:false,3:false,4:false,5:false,6:false};
+lucide.createIcons();
 
-function closePopup(){
-    document.getElementById('critical-popup').classList.add('hidden');
+const reservePressure = 50;
+const NUM_FF = 6;
+
+// Estado dos bombeiros
+const firefighters = [];
+for (let i = 0; i < NUM_FF; i++) {
+    firefighters.push({
+        name: "",
+        volume: 6.8,
+        consumption: 45,
+        pressure: 300,
+        entryTimeStr: "--:--",
+        exitTimeStr: "--:--",
+        entryTimestamp: null,
+        initialMinutes: null,
+        remainingMinutes: null,
+        alertShown: false
+    });
 }
 
-// Reforço do intervalo existente
-setInterval(() => {
-    for (let i = 1; i <= 6; i++) {
-        const f = FF[i];
-        if (f.entryTimestamp) {
-            const now = Date.now();
-            const elapsedMin = (now - f.entryTimestamp) / 60000;
-            const remaining = Math.floor(f.initialMinutes - elapsedMin);
+let activeIndex = 0; // 0..5
+let notificationsEnabled = false;
 
-            if (remaining <= 5 && remaining >= 0) {
-                const tab = document.getElementById(`tab-${i}`);
-                if (tab) tab.classList.add('animate-pulse','bg-red-800');
+// DOM refs
+const nameInput       = document.getElementById("ff-name");
+const pressureInput   = document.getElementById("pressure");
+const resultMinutesEl = document.getElementById("result-minutes");
+const progressBarEl   = document.getElementById("progress-bar");
+const entryTimeEl     = document.getElementById("entry-time");
+const exitTimeEl      = document.getElementById("exit-time");
+const consumptionDisplay = document.getElementById("consumption-display");
 
-                // Alertas combinados (C): Browser + Popup custom apenas 1 vez
-                if (!popupShown[i]) {
-                    alert(`Bombeiro ${i} deve sair imediatamente!`);
-                    document.getElementById('popup-text').textContent = `Bombeiro ${i} tem menos de 5 minutos!`;
-                    document.getElementById('critical-popup').classList.remove('hidden');
-                    popupShown[i] = true;
-                }
+// Popup
+const popupEl = document.getElementById("critical-popup");
+const popupTextEl = document.getElementById("popup-text");
+
+// Pedir permissão para notificações
+async function askNotificationPermission() {
+    if (!("Notification" in window)) return;
+    try {
+        const perm = await Notification.requestPermission();
+        if (perm === "granted") notificationsEnabled = true;
+    } catch (e) {
+        notificationsEnabled = false;
+    }
+}
+askNotificationPermission();
+
+// Vibração (smartphones)
+function vibrate(ms = 400) {
+    if (navigator.vibrate) {
+        navigator.vibrate(ms);
+    }
+}
+
+// Atualizar nome
+function updateName(val) {
+    firefighters[activeIndex].name = val;
+}
+
+// Selecionar bombeiro
+function selectFF(n) {
+    activeIndex = n - 1;
+    renderUI();
+}
+
+// Carregar estado do bombeiro ativo para a UI
+function renderUI() {
+    highlightTabs();
+
+    const f = firefighters[activeIndex];
+
+    // Nome
+    nameInput.value = f.name || "";
+
+    // Pressão
+    pressureInput.value = f.pressure;
+
+    // Entry / Exit
+    entryTimeEl.textContent = f.entryTimeStr;
+    exitTimeEl.textContent  = f.exitTimeStr;
+
+    // Volume & Consumo botões
+    highlightVolumeButtons();
+    highlightConsumptionButtons();
+
+    // Atualizar tempo & barra
+    updateTimeAndBar();
+}
+
+// Destacar tabs (inclui aviso <10 e <5 min)
+function highlightTabs() {
+    for (let i = 0; i < NUM_FF; i++) {
+        const tab = document.getElementById(`tab-${i+1}`);
+        if (!tab) continue;
+
+        // Reset base
+        tab.classList.remove("border-2","border-white","bg-red-600","animate-pulse","ring-2","ring-orange-400","ring-red-500");
+        tab.classList.add("bg-gray-700","text-white");
+
+        if (i === activeIndex) {
+            tab.classList.remove("bg-gray-700");
+            tab.classList.add("bg-red-600","border-2","border-white");
+        }
+
+        const f = firefighters[i];
+        if (f.entryTimestamp && f.initialMinutes != null) {
+            const elapsed   = (Date.now() - f.entryTimestamp) / 60000;
+            const remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
+
+            if (remaining <= 5) {
+                tab.classList.add("ring-2","ring-red-500","animate-pulse");
+            } else if (remaining <= 10) {
+                tab.classList.add("ring-2","ring-orange-400");
             }
         }
     }
-}, 30000); // verifica a cada 30s para maior precisão
+}
 
+// Destacar volume
+function highlightVolumeButtons() {
+    document.querySelectorAll(".vol-btn").forEach(btn => {
+        btn.classList.remove("bg-red-600","border-white","text-white","shadow-lg","shadow-red-900/50");
+        btn.classList.add("bg-gray-700");
+    });
+    const vol = firefighters[activeIndex].volume;
+    const btn = document.getElementById(`vol-${vol}`);
+    if (btn) {
+        btn.classList.remove("bg-gray-700");
+        btn.classList.add("bg-red-600","border-white","text-white","shadow-lg","shadow-red-900/50");
+    }
+}
+
+// Destacar consumo
+function highlightConsumptionButtons() {
+    document.querySelectorAll(".cons-btn").forEach(btn => {
+        btn.classList.remove("bg-red-600","border-white","text-white");
+        btn.classList.add("bg-gray-700");
+    });
+    const cons = firefighters[activeIndex].consumption;
+    const btn = document.getElementById(`cons-${cons}`);
+    if (btn) {
+        btn.classList.remove("bg-gray-700");
+        btn.classList.add("bg-red-600","border-white","text-white");
+    }
+    const label = cons === 45 ? "Intenso (45 L/min)" : "Moderado (40 L/min)";
+    consumptionDisplay.textContent = label;
+}
+
+// Set volume
+function setVolume(v) {
+    firefighters[activeIndex].volume = v;
+    highlightVolumeButtons();
+    updateTimeAndBar();
+}
+
+// Set consumo
+function setConsumption(c) {
+    firefighters[activeIndex].consumption = c;
+    highlightConsumptionButtons();
+    updateTimeAndBar();
+}
+
+// Ajustar pressão
+function adjustPressure(delta) {
+    const f = firefighters[activeIndex];
+    let val = parseInt(pressureInput.value) || 0;
+    val += delta;
+    if (val < 0) val = 0;
+    if (val > 400) val = 400;
+    f.pressure = val;
+    pressureInput.value = val;
+    updateTimeAndBar();
+}
+
+// Definir pressão direta
+function setPressure(val) {
+    const f = firefighters[activeIndex];
+    f.pressure = val;
+    pressureInput.value = val;
+    updateTimeAndBar();
+}
+
+// Quando o utilizador escreve na pressão
+function updatePressureInput() {
+    const f = firefighters[activeIndex];
+    f.pressure = parseInt(pressureInput.value) || 0;
+    updateTimeAndBar();
+}
+
+// Calcula minutos teóricos (sem entrada ainda)
+function computePhysicalMinutes(f) {
+    const usefulPressure = Math.max(0, f.pressure - reservePressure);
+    const usefulLiters   = usefulPressure * f.volume;
+    const minutes        = usefulLiters / f.consumption;
+    return Math.floor(minutes);
+}
+
+// Atualiza o tempo disponível e a barra
+function updateTimeAndBar() {
+    const f = firefighters[activeIndex];
+
+    let minutes;
+    if (f.entryTimestamp && f.initialMinutes != null) {
+        // Countdown real após entrada
+        const elapsed = (Date.now() - f.entryTimestamp) / 60000;
+        minutes = Math.max(0, Math.floor(f.initialMinutes - elapsed));
+        f.remainingMinutes = minutes;
+    } else {
+        // Antes de entrar, mostra tempo teórico
+        minutes = computePhysicalMinutes(f);
+        f.remainingMinutes = minutes;
+        f.initialMinutes   = minutes;
+    }
+
+    resultMinutesEl.textContent = isNaN(minutes) ? "00" : String(minutes).padStart(2,"0");
+
+    // Barra de progresso
+    let pct = 100;
+    if (f.initialMinutes && f.initialMinutes > 0) {
+        pct = Math.max(0, Math.min(100, (minutes / f.initialMinutes) * 100));
+    }
+    progressBarEl.style.width = pct + "%";
+
+    // Cores da barra
+    if (minutes <= 5) {
+        progressBarEl.style.background = "#dc2626"; // vermelho
+    } else if (minutes <= 10) {
+        progressBarEl.style.background = "#f97316"; // laranja
+    } else {
+        progressBarEl.style.background = "#22c55e"; // verde
+    }
+}
+
+// Entrar Agora
+function enterNow() {
+    const f = firefighters[activeIndex];
+    const now = new Date();
+
+    // minutos teóricos no momento da entrada
+    const minutes = computePhysicalMinutes(f);
+    if (minutes <= 0) return;
+
+    f.entryTimestamp = Date.now();
+    f.initialMinutes = minutes;
+    f.remainingMinutes = minutes;
+
+    f.entryTimeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const exitTime = new Date(now.getTime() + minutes * 60000);
+    f.exitTimeStr  = exitTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Reset do alerta para este bombeiro
+    f.alertShown = false;
+
+    entryTimeEl.textContent = f.entryTimeStr;
+    exitTimeEl.textContent  = f.exitTimeStr;
+
+    updateTimeAndBar();
+    highlightTabs();
+}
+
+// Popup fechar
+function closePopup() {
+    popupEl.classList.add("hidden");
+}
+
+// Verificação periódica (cada minuto)
+setInterval(() => {
+    // Atualizar countdown de todos
+    for (let i = 0; i < NUM_FF; i++) {
+        const f = firefighters[i];
+        if (f.entryTimestamp && f.initialMinutes != null) {
+            const elapsed = (Date.now() - f.entryTimestamp) / 60000;
+            const remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
+            f.remainingMinutes = remaining;
+
+            // ALERTA CRÍTICO <5 MIN (uma vez por bombeiro)
+            if (remaining <= 5 && !f.alertShown) {
+                f.alertShown = true;
+
+                // Vibração
+                vibrate(500);
+
+                // Notificação push (se permitido)
+                if (notificationsEnabled && "Notification" in window) {
+                    try {
+                        new Notification(`🚨 Bombeiro ${i+1}`, {
+                            body: "Menos de 5 minutos de ar disponível!",
+                        });
+                    } catch(e) {}
+                }
+
+                // Popup
+                popupTextEl.textContent = `Bombeiro ${i+1} tem menos de 5 minutos!`;
+                popupEl.classList.remove("hidden");
+
+                // Alert do browser
+                alert(`Bombeiro ${i+1} com autonomia crítica!`);
+            }
+        }
+    }
+
+    // Atualizar UI do ativo
+    updateTimeAndBar();
+    highlightTabs();
+}, 60000);
+
+// Inicializar UI
+renderUI();
 </script>
 
 </body>
