@@ -14,20 +14,24 @@
     <h1 class="text-2xl font-bold tracking-wider text-white">ARICAS CBSLeiria</h1>
 </header>
 
-<!-- TABS DOS 6 BOMBEIROS -->
+<!-- TABS DOS 6 BOMBEIROS + RESUMO -->
 <div class="w-full max-w-md mt-4 px-4 flex justify-between gap-1" id="tabs-container">
     <button id="tab-1" onclick="selectFF(1)" class="flex-1 py-2 rounded bg-red-600 border-2 border-white text-white text-sm font-bold">
-        B1
+        1
     </button>
-    <button id="tab-2" onclick="selectFF(2)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B2</button>
-    <button id="tab-3" onclick="selectFF(3)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B3</button>
-    <button id="tab-4" onclick="selectFF(4)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B4</button>
-    <button id="tab-5" onclick="selectFF(5)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B5</button>
-    <button id="tab-6" onclick="selectFF(6)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">B6</button>
+    <button id="tab-2" onclick="selectFF(2)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">2</button>
+    <button id="tab-3" onclick="selectFF(3)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">3</button>
+    <button id="tab-4" onclick="selectFF(4)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">4</button>
+    <button id="tab-5" onclick="selectFF(5)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">5</button>
+    <button id="tab-6" onclick="selectFF(6)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">6</button>
+    <!-- Tab de RESUMO com ícone -->
+    <button id="tab-summary" onclick="selectSummaryTab()" class="flex-1 py-2 rounded bg-gray-800 text-gray-200 text-xs font-bold flex items-center justify-center gap-1">
+        <i data-lucide="list" class="w-4 h-4"></i>
+    </button>
 </div>
 
-<!-- ÁREA DO CONTEÚDO -->
-<main class="w-full max-w-md px-4 mt-6 space-y-6">
+<!-- VISTA PRINCIPAL (BOMBEIROS) -->
+<main id="ff-view" class="w-full max-w-md px-4 mt-6 space-y-6">
 
     <!-- Nome do Bombeiro -->
     <section class="bg-gray-800 p-4 rounded-xl border border-gray-700">
@@ -150,6 +154,25 @@
     </section>
 </main>
 
+<!-- VISTA RESUMO (TAB R) -->
+<section id="summary-view" class="w-full max-w-md px-4 mt-6 hidden">
+    <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-2">
+        <i data-lucide="list" class="w-4 h-4"></i>
+        Resumo dos Bombeiros em Trabalho
+    </h2>
+    <div id="summary-list" class="bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-gray-200">
+        <p class="text-gray-500 text-xs">Nenhum bombeiro em trabalho.</p>
+    </div>
+
+    <!-- Botão Reset Geral -->
+    <div class="flex justify-end mt-3">
+        <button onclick="resetAll()"
+                class="bg-red-700 hover:bg-red-600 text-xs px-3 py-1 rounded font-bold">
+            Reset Geral
+        </button>
+    </div>
+</section>
+
 <!-- Popup Customizado -->
 <div id="critical-popup" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden">
   <div class="bg-red-700 p-6 rounded-xl shadow-xl text-center max-w-xs border-2 border-white">
@@ -159,11 +182,18 @@
   </div>
 </div>
 
+<!-- RODAPÉ -->
+<footer class="w-full mt-8 px-4 text-center text-xs text-gray-500 leading-relaxed">
+    SCh2ª João Paulo Pereira<br>
+    Companhia Bombeiros Sapadores Leiria
+</footer>
+
 <script>
 lucide.createIcons();
 
 const reservePressure = 50;
 const NUM_FF = 6;
+const STORAGE_KEY = "aricas_state_v1";
 
 // Estado dos bombeiros
 const firefighters = [];
@@ -178,11 +208,13 @@ for (let i = 0; i < NUM_FF; i++) {
         entryTimestamp: null,
         initialMinutes: null,
         remainingMinutes: null,
-        alertShown: false
+        alertShown: false,
+        inWork: false   // aparece no resumo enquanto for true
     });
 }
 
 let activeIndex = 0; // 0..5
+let activeView  = 'ff'; // 'ff' ou 'summary'
 let notificationsEnabled = false;
 
 // DOM refs
@@ -193,10 +225,50 @@ const progressBarEl   = document.getElementById("progress-bar");
 const entryTimeEl     = document.getElementById("entry-time");
 const exitTimeEl      = document.getElementById("exit-time");
 const consumptionDisplay = document.getElementById("consumption-display");
+const summaryListEl   = document.getElementById("summary-list");
+const ffViewEl        = document.getElementById("ff-view");
+const summaryViewEl   = document.getElementById("summary-view");
 
 // Popup
 const popupEl = document.getElementById("critical-popup");
 const popupTextEl = document.getElementById("popup-text");
+
+// ---------- LOCALSTORAGE ----------
+function saveState() {
+    try {
+        const data = {
+            firefighters,
+            activeIndex,
+            activeView
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+        console.warn("Não foi possível guardar o estado:", e);
+    }
+}
+
+function loadState() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data.firefighters && Array.isArray(data.firefighters)) {
+            data.firefighters.forEach((fd, i) => {
+                if (i < NUM_FF && fd) {
+                    Object.assign(firefighters[i], fd);
+                }
+            });
+        }
+        if (typeof data.activeIndex === "number") {
+            activeIndex = Math.min(NUM_FF - 1, Math.max(0, data.activeIndex));
+        }
+        if (data.activeView === "ff" || data.activeView === "summary") {
+            activeView = data.activeView;
+        }
+    } catch (e) {
+        console.warn("Não foi possível carregar o estado:", e);
+    }
+}
 
 // Pedir permissão para notificações
 async function askNotificationPermission() {
@@ -225,7 +297,7 @@ function playBeep() {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        osc.type = "sine";          // tipo de onda
+        osc.type = "sine";
         osc.frequency.value = 1000; // Hz
 
         osc.connect(gain);
@@ -243,15 +315,49 @@ function playBeep() {
     }
 }
 
+// Atualizar visibilidade das vistas
+function updateViewVisibility() {
+    if (activeView === 'ff') {
+        ffViewEl.classList.remove('hidden');
+        summaryViewEl.classList.add('hidden');
+    } else {
+        ffViewEl.classList.add('hidden');
+        summaryViewEl.classList.remove('hidden');
+    }
+}
+
 // Atualizar nome
 function updateName(val) {
     firefighters[activeIndex].name = val;
+    renderSummary();
+    saveState();
 }
 
-// Selecionar bombeiro
+// Selecionar bombeiro (vista principal)
 function selectFF(n) {
+    activeView  = 'ff';
     activeIndex = n - 1;
     renderUI();
+    updateViewVisibility();
+    saveState();
+}
+
+// Selecionar tab de resumo
+function selectSummaryTab() {
+    activeView = 'summary';
+    highlightTabs();
+    updateViewVisibility();
+    renderSummary();
+    saveState();
+}
+
+// Ir para bombeiro ao clicar no resumo
+function goToFirefighter(index) {
+    activeIndex = index;
+    activeView = 'ff';
+    renderUI();
+    updateViewVisibility();
+    saveState();
 }
 
 // Carregar estado do bombeiro ativo para a UI
@@ -260,22 +366,16 @@ function renderUI() {
 
     const f = firefighters[activeIndex];
 
-    // Nome
     nameInput.value = f.name || "";
-
-    // Pressão
     pressureInput.value = f.pressure;
-
-    // Entry / Exit
     entryTimeEl.textContent = f.entryTimeStr;
     exitTimeEl.textContent  = f.exitTimeStr;
 
-    // Volume & Consumo botões
     highlightVolumeButtons();
     highlightConsumptionButtons();
 
-    // Atualizar tempo & barra
     updateTimeAndBar();
+    renderSummary();
 }
 
 // Destacar tabs (inclui aviso <10 e <5 min)
@@ -284,17 +384,14 @@ function highlightTabs() {
         const tab = document.getElementById(`tab-${i+1}`);
         if (!tab) continue;
 
-        // Reset base
-        tab.classList.remove("border-2","border-white","bg-red-600","animate-pulse","ring-2","ring-orange-400","ring-red-500");
-        tab.classList.add("bg-gray-700","text-white");
+        tab.className = "flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold";
 
-        if (i === activeIndex) {
-            tab.classList.remove("bg-gray-700");
+        const f = firefighters[i];
+        if (activeView === 'ff' && i === activeIndex) {
             tab.classList.add("bg-red-600","border-2","border-white");
         }
 
-        const f = firefighters[i];
-        if (f.entryTimestamp && f.initialMinutes != null) {
+        if (f.entryTimestamp && f.initialMinutes != null && f.inWork) {
             const elapsed   = (Date.now() - f.entryTimestamp) / 60000;
             const remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
 
@@ -303,6 +400,14 @@ function highlightTabs() {
             } else if (remaining <= 10) {
                 tab.classList.add("ring-2","ring-orange-400");
             }
+        }
+    }
+
+    const sTab = document.getElementById('tab-summary');
+    if (sTab) {
+        sTab.className = "flex-1 py-2 rounded bg-gray-800 text-gray-200 text-xs font-bold flex items-center justify-center gap-1";
+        if (activeView === 'summary') {
+            sTab.classList.add("border-2","border-white","bg-blue-700","text-white");
         }
     }
 }
@@ -342,6 +447,8 @@ function setVolume(v) {
     firefighters[activeIndex].volume = v;
     highlightVolumeButtons();
     updateTimeAndBar();
+    renderSummary();
+    saveState();
 }
 
 // Set consumo
@@ -349,6 +456,8 @@ function setConsumption(c) {
     firefighters[activeIndex].consumption = c;
     highlightConsumptionButtons();
     updateTimeAndBar();
+    renderSummary();
+    saveState();
 }
 
 // Ajustar pressão
@@ -361,6 +470,8 @@ function adjustPressure(delta) {
     f.pressure = val;
     pressureInput.value = val;
     updateTimeAndBar();
+    renderSummary();
+    saveState();
 }
 
 // Definir pressão direta
@@ -369,6 +480,8 @@ function setPressure(val) {
     f.pressure = val;
     pressureInput.value = val;
     updateTimeAndBar();
+    renderSummary();
+    saveState();
 }
 
 // Quando o utilizador escreve na pressão
@@ -376,6 +489,8 @@ function updatePressureInput() {
     const f = firefighters[activeIndex];
     f.pressure = parseInt(pressureInput.value) || 0;
     updateTimeAndBar();
+    renderSummary();
+    saveState();
 }
 
 // Calcula minutos teóricos (sem entrada ainda)
@@ -391,13 +506,11 @@ function updateTimeAndBar() {
     const f = firefighters[activeIndex];
 
     let minutes;
-    if (f.entryTimestamp && f.initialMinutes != null) {
-        // Countdown real após entrada
+    if (f.entryTimestamp && f.initialMinutes != null && f.inWork) {
         const elapsed = (Date.now() - f.entryTimestamp) / 60000;
         minutes = Math.max(0, Math.floor(f.initialMinutes - elapsed));
         f.remainingMinutes = minutes;
     } else {
-        // Antes de entrar, mostra tempo teórico
         minutes = computePhysicalMinutes(f);
         f.remainingMinutes = minutes;
         f.initialMinutes   = minutes;
@@ -405,20 +518,18 @@ function updateTimeAndBar() {
 
     resultMinutesEl.textContent = isNaN(minutes) ? "00" : String(minutes).padStart(2,"0");
 
-    // Barra de progresso
     let pct = 100;
     if (f.initialMinutes && f.initialMinutes > 0) {
         pct = Math.max(0, Math.min(100, (minutes / f.initialMinutes) * 100));
     }
     progressBarEl.style.width = pct + "%";
 
-    // Cores da barra
     if (minutes <= 5) {
-        progressBarEl.style.background = "#dc2626"; // vermelho
+        progressBarEl.style.background = "#dc2626";
     } else if (minutes <= 10) {
-        progressBarEl.style.background = "#f97316"; // laranja
+        progressBarEl.style.background = "#f97316";
     } else {
-        progressBarEl.style.background = "#22c55e"; // verde
+        progressBarEl.style.background = "#22c55e";
     }
 }
 
@@ -427,19 +538,18 @@ function enterNow() {
     const f = firefighters[activeIndex];
     const now = new Date();
 
-    // minutos teóricos no momento da entrada
     const minutes = computePhysicalMinutes(f);
     if (minutes <= 0) return;
 
     f.entryTimestamp = Date.now();
     f.initialMinutes = minutes;
     f.remainingMinutes = minutes;
+    f.inWork = true;
 
     f.entryTimeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const exitTime = new Date(now.getTime() + minutes * 60000);
     f.exitTimeStr  = exitTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    // Reset do alerta para este bombeiro
     f.alertShown = false;
 
     entryTimeEl.textContent = f.entryTimeStr;
@@ -447,6 +557,8 @@ function enterNow() {
 
     updateTimeAndBar();
     highlightTabs();
+    renderSummary();
+    saveState();
 }
 
 // Popup fechar
@@ -454,27 +566,147 @@ function closePopup() {
     popupEl.classList.add("hidden");
 }
 
-// Verificação periódica (cada minuto)
-setInterval(() => {
-    // Atualizar countdown de todos
+// Limpar bombeiro (terminou o trabalho)
+function clearFirefighter(index) {
+    const f = firefighters[index];
+    f.entryTimestamp = null;
+    f.initialMinutes = null;
+    f.remainingMinutes = null;
+    f.entryTimeStr = "--:--";
+    f.exitTimeStr = "--:--";
+    f.alertShown = false;
+    f.inWork = false;
+
+    if (activeIndex === index && activeView === 'ff') {
+        entryTimeEl.textContent = f.entryTimeStr;
+        exitTimeEl.textContent  = f.exitTimeStr;
+        updateTimeAndBar();
+        highlightTabs();
+    }
+    renderSummary();
+    saveState();
+}
+
+// Reset Geral
+function resetAll() {
+    if (!confirm("Tem a certeza que pretende limpar todos os dados de todos os bombeiros?")) return;
+
     for (let i = 0; i < NUM_FF; i++) {
         const f = firefighters[i];
+        f.name = "";
+        f.volume = 6.8;
+        f.consumption = 45;
+        f.pressure = 300;
+        f.entryTimeStr = "--:--";
+        f.exitTimeStr = "--:--";
+        f.entryTimestamp = null;
+        f.initialMinutes = null;
+        f.remainingMinutes = null;
+        f.alertShown = false;
+        f.inWork = false;
+    }
+
+    activeIndex = 0;
+    activeView  = 'ff';
+    localStorage.removeItem(STORAGE_KEY);
+
+    renderUI();
+    updateViewVisibility();
+    highlightTabs();
+    renderSummary();
+}
+
+// Render resumo dos bombeiros em trabalho
+function renderSummary() {
+    let rows = [];
+
+    for (let i = 0; i < NUM_FF; i++) {
+        const f = firefighters[i];
+        if (!f.inWork) continue;
+
+        let remaining = f.remainingMinutes;
+        let elapsed   = 0;
+
         if (f.entryTimestamp && f.initialMinutes != null) {
+            const diffMin = (Date.now() - f.entryTimestamp) / 60000;
+            elapsed = Math.max(0, Math.floor(diffMin));
+            remaining = Math.max(0, Math.floor(f.initialMinutes - diffMin));
+            f.remainingMinutes = remaining;
+        } else {
+            remaining = remaining ?? computePhysicalMinutes(f);
+        }
+
+        rows.push({
+            index: i,
+            name: f.name || `Bombeiro ${i+1}`,
+            remaining,
+            elapsed,
+            exitTime: f.exitTimeStr
+        });
+    }
+
+    rows.sort((a, b) => a.remaining - b.remaining);
+
+    if (rows.length === 0) {
+        summaryListEl.innerHTML = "<p class='text-gray-500 text-xs'>Nenhum bombeiro em trabalho.</p>";
+        return;
+    }
+
+    let html = `
+        <div class="grid grid-cols-6 text-[11px] font-bold text-gray-300 border-b border-gray-700 pb-1 mb-2">
+            <div>#</div>
+            <div>Nome</div>
+            <div>Decorr.</div>
+            <div>Restante</div>
+            <div>Saída</div>
+            <div></div>
+        </div>
+    `;
+
+    rows.forEach(r => {
+        const shownRemaining = Math.max(0, r.remaining);
+        const critico = shownRemaining <= 5 && shownRemaining > 0;
+        const tempoClass =
+            critico ? 'text-red-400 font-bold' :
+            (shownRemaining <= 10 ? 'text-orange-300' : 'text-green-300');
+
+        html += `
+        <div class="grid grid-cols-6 text-[11px] items-center py-1 border-b border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-700/40"
+             onclick="goToFirefighter(${r.index})">
+            <div class="font-bold text-red-300">${r.index+1}</div>
+            <div class="truncate pr-1">${r.name}</div>
+            <div class="text-gray-200">${r.elapsed} min</div>
+            <div class="${tempoClass}">
+                ${shownRemaining} min ${critico ? '🔥' : ''}
+            </div>
+            <div class="font-mono text-gray-200 text-right">${r.exitTime}</div>
+            <div class="text-right">
+                <button onclick="event.stopPropagation(); clearFirefighter(${r.index})"
+                        class="bg-gray-700 hover:bg-gray-600 text-[10px] px-2 py-1 rounded">
+                    Limpar
+                </button>
+            </div>
+        </div>`;
+    });
+
+    summaryListEl.innerHTML = html;
+}
+
+// Verificação periódica (cada minuto)
+setInterval(() => {
+    for (let i = 0; i < NUM_FF; i++) {
+        const f = firefighters[i];
+        if (f.entryTimestamp && f.initialMinutes != null && f.inWork) {
             const elapsed = (Date.now() - f.entryTimestamp) / 60000;
             const remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
             f.remainingMinutes = remaining;
 
-            // ALERTA CRÍTICO <5 MIN (uma vez por bombeiro)
             if (remaining <= 5 && !f.alertShown) {
                 f.alertShown = true;
 
-                // Vibração
                 vibrate(500);
-
-                // Som
                 playBeep();
 
-                // Notificação push (se permitido)
                 if (notificationsEnabled && "Notification" in window) {
                     try {
                         new Notification(`🚨 Bombeiro ${i+1}`, {
@@ -483,23 +715,24 @@ setInterval(() => {
                     } catch(e) {}
                 }
 
-                // Popup
                 popupTextEl.textContent = `Bombeiro ${i+1} tem menos de 5 minutos!`;
                 popupEl.classList.remove("hidden");
 
-                // Alert do browser
                 alert(`Bombeiro ${i+1} com autonomia crítica!`);
             }
         }
     }
 
-    // Atualizar UI do ativo
     updateTimeAndBar();
     highlightTabs();
+    renderSummary();
+    saveState();
 }, 60000);
 
-// Inicializar UI
+// Inicializar
+loadState();
 renderUI();
+updateViewVisibility();
 </script>
 
 </body>
