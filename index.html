@@ -2,7 +2,8 @@
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calculadora ARICAS - Multi Bombeiro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -160,14 +161,28 @@
         <i data-lucide="list" class="w-4 h-4"></i>
         Resumo dos Bombeiros em Trabalho
     </h2>
-    <div id="summary-list" class="bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-gray-200">
-        <p class="text-gray-500 text-xs">Nenhum bombeiro em trabalho.</p>
+
+    <div id="summary-list" class="bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-gray-200 mb-4">
+        <p class="text-gray-500 text-xs">Nenhum em trabalho.</p>
     </div>
 
-    <!-- Botão Reset Geral -->
-    <div class="flex justify-end mt-3">
+    <!-- Observações -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-3 mb-3">
+        <label class="block text-xs font-bold text-gray-300 mb-1">Observações para o relatório</label>
+        <textarea id="obs-text"
+                  class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs resize-y min-h-[60px]"
+                  placeholder="Ex: Equipa 1 em cave, condições difíceis..."
+                  oninput="updateObservations(this.value)"></textarea>
+    </section>
+
+    <!-- Botões no Resumo -->
+    <div class="flex justify-between mt-1 gap-2">
+        <button onclick="exportPDF()"
+                class="flex-1 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-1 rounded font-bold flex items-center justify-center gap-1">
+            <i data-lucide="download" class="w-3 h-3"></i> Exportar PDF
+        </button>
         <button onclick="resetAll()"
-                class="bg-red-700 hover:bg-red-600 text-xs px-3 py-1 rounded font-bold">
+                class="flex-1 bg-red-700 hover:bg-red-600 text-xs px-3 py-1 rounded font-bold">
             Reset Geral
         </button>
     </div>
@@ -177,7 +192,7 @@
 <div id="critical-popup" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden">
   <div class="bg-red-700 p-6 rounded-xl shadow-xl text-center max-w-xs border-2 border-white">
     <h2 class="text-2xl font-bold mb-3">⚠️ ALERTA CRÍTICO ⚠️</h2>
-    <p id="popup-text" class="text-lg mb-4">Bombeiro em perigo</p>
+    <p id="popup-text" class="text-lg mb-4">Em perigo</p>
     <button onclick="closePopup()" class="bg-white text-red-700 font-bold px-4 py-2 rounded">OK</button>
   </div>
 </div>
@@ -209,12 +224,19 @@ for (let i = 0; i < NUM_FF; i++) {
         initialMinutes: null,
         remainingMinutes: null,
         alertShown: false,
-        inWork: false   // aparece no resumo enquanto for true
+        inWork: false
     });
 }
 
+// Histórico de entradas/saídas
+const logs = [];
+
+// Observações
+let observations = "";
+
+// Estado da UI
 let activeIndex = 0; // 0..5
-let activeView  = 'ff'; // 'ff' ou 'summary'
+let activeView  = "ff"; // "ff" ou "summary"
 let notificationsEnabled = false;
 
 // DOM refs
@@ -228,18 +250,17 @@ const consumptionDisplay = document.getElementById("consumption-display");
 const summaryListEl   = document.getElementById("summary-list");
 const ffViewEl        = document.getElementById("ff-view");
 const summaryViewEl   = document.getElementById("summary-view");
-
-// Popup
-const popupEl = document.getElementById("critical-popup");
-const popupTextEl = document.getElementById("popup-text");
+const obsTextEl       = document.getElementById("obs-text");
 
 // ---------- LOCALSTORAGE ----------
 function saveState() {
     try {
         const data = {
-            firefighters,
-            activeIndex,
-            activeView
+            firefighters: firefighters,
+            logs: logs,
+            activeIndex: activeIndex,
+            activeView: activeView,
+            observations: observations
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -252,18 +273,30 @@ function loadState() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const data = JSON.parse(raw);
+
         if (data.firefighters && Array.isArray(data.firefighters)) {
-            data.firefighters.forEach((fd, i) => {
+            data.firefighters.forEach(function(fd, i) {
                 if (i < NUM_FF && fd) {
                     Object.assign(firefighters[i], fd);
                 }
             });
         }
+
+        if (data.logs && Array.isArray(data.logs)) {
+            logs.length = 0;
+            data.logs.forEach(function(l) { logs.push(l); });
+        }
+
         if (typeof data.activeIndex === "number") {
             activeIndex = Math.min(NUM_FF - 1, Math.max(0, data.activeIndex));
         }
         if (data.activeView === "ff" || data.activeView === "summary") {
             activeView = data.activeView;
+        }
+
+        if (typeof data.observations === "string") {
+            observations = data.observations;
+            obsTextEl.value = observations;
         }
     } catch (e) {
         console.warn("Não foi possível carregar o estado:", e);
@@ -271,19 +304,19 @@ function loadState() {
 }
 
 // Pedir permissão para notificações
-async function askNotificationPermission() {
+function askNotificationPermission() {
     if (!("Notification" in window)) return;
-    try {
-        const perm = await Notification.requestPermission();
+    Notification.requestPermission().then(function(perm) {
         if (perm === "granted") notificationsEnabled = true;
-    } catch (e) {
+    }).catch(function() {
         notificationsEnabled = false;
-    }
+    });
 }
 askNotificationPermission();
 
 // Vibração (smartphones)
-function vibrate(ms = 400) {
+function vibrate(ms) {
+    if (ms === undefined) ms = 400;
     if (navigator.vibrate) {
         navigator.vibrate(ms);
     }
@@ -292,18 +325,18 @@ function vibrate(ms = 400) {
 // Aviso sonoro (beep simples)
 function playBeep() {
     try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        var ctx = new AudioCtx();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
 
         osc.type = "sine";
-        osc.frequency.value = 1000; // Hz
+        osc.frequency.value = 1000;
 
         osc.connect(gain);
         gain.connect(ctx.destination);
 
-        const now = ctx.currentTime;
+        var now = ctx.currentTime;
         gain.gain.setValueAtTime(0.0001, now);
         gain.gain.exponentialRampToValueAtTime(0.8, now + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
@@ -315,14 +348,20 @@ function playBeep() {
     }
 }
 
+// Observações
+function updateObservations(val) {
+    observations = val;
+    saveState();
+}
+
 // Atualizar visibilidade das vistas
 function updateViewVisibility() {
-    if (activeView === 'ff') {
-        ffViewEl.classList.remove('hidden');
-        summaryViewEl.classList.add('hidden');
+    if (activeView === "ff") {
+        ffViewEl.classList.remove("hidden");
+        summaryViewEl.classList.add("hidden");
     } else {
-        ffViewEl.classList.add('hidden');
-        summaryViewEl.classList.remove('hidden');
+        ffViewEl.classList.add("hidden");
+        summaryViewEl.classList.remove("hidden");
     }
 }
 
@@ -333,9 +372,9 @@ function updateName(val) {
     saveState();
 }
 
-// Selecionar bombeiro (vista principal)
+// Selecionar bombeiro
 function selectFF(n) {
-    activeView  = 'ff';
+    activeView  = "ff";
     activeIndex = n - 1;
     renderUI();
     updateViewVisibility();
@@ -344,7 +383,7 @@ function selectFF(n) {
 
 // Selecionar tab de resumo
 function selectSummaryTab() {
-    activeView = 'summary';
+    activeView = "summary";
     highlightTabs();
     updateViewVisibility();
     renderSummary();
@@ -354,72 +393,55 @@ function selectSummaryTab() {
 // Ir para bombeiro ao clicar no resumo
 function goToFirefighter(index) {
     activeIndex = index;
-    activeView = 'ff';
+    activeView = "ff";
     renderUI();
     updateViewVisibility();
     saveState();
 }
 
-// Carregar estado do bombeiro ativo para a UI
-function renderUI() {
-    highlightTabs();
-
-    const f = firefighters[activeIndex];
-
-    nameInput.value = f.name || "";
-    pressureInput.value = f.pressure;
-    entryTimeEl.textContent = f.entryTimeStr;
-    exitTimeEl.textContent  = f.exitTimeStr;
-
-    highlightVolumeButtons();
-    highlightConsumptionButtons();
-
-    updateTimeAndBar();
-    renderSummary();
-}
-
-// Destacar tabs (inclui aviso <10 e <5 min)
+// Destacar tabs
 function highlightTabs() {
-    for (let i = 0; i < NUM_FF; i++) {
-        const tab = document.getElementById(`tab-${i+1}`);
+    for (var i = 0; i < NUM_FF; i++) {
+        var tab = document.getElementById("tab-" + (i + 1));
         if (!tab) continue;
 
         tab.className = "flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold";
 
-        const f = firefighters[i];
-        if (activeView === 'ff' && i === activeIndex) {
-            tab.classList.add("bg-red-600","border-2","border-white");
+        var f = firefighters[i];
+        if (activeView === "ff" && i === activeIndex) {
+            tab.classList.add("bg-red-600", "border-2", "border-white");
         }
 
         if (f.entryTimestamp && f.initialMinutes != null && f.inWork) {
-            const elapsed   = (Date.now() - f.entryTimestamp) / 60000;
-            const remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
+            var elapsed   = (Date.now() - f.entryTimestamp) / 60000;
+            var remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
 
             if (remaining <= 5) {
-                tab.classList.add("ring-2","ring-red-500","animate-pulse");
+                tab.classList.add("ring-2", "ring-red-500", "animate-pulse");
             } else if (remaining <= 10) {
-                tab.classList.add("ring-2","ring-orange-400");
+                tab.classList.add("ring-2", "ring-orange-400");
             }
         }
     }
 
-    const sTab = document.getElementById('tab-summary');
+    var sTab = document.getElementById("tab-summary");
     if (sTab) {
         sTab.className = "flex-1 py-2 rounded bg-gray-800 text-gray-200 text-xs font-bold flex items-center justify-center gap-1";
-        if (activeView === 'summary') {
-            sTab.classList.add("border-2","border-white","bg-blue-700","text-white");
+        if (activeView === "summary") {
+            sTab.classList.add("border-2", "border-white", "bg-blue-700", "text-white");
         }
     }
 }
 
 // Destacar volume
 function highlightVolumeButtons() {
-    document.querySelectorAll(".vol-btn").forEach(btn => {
+    var volBtns = document.querySelectorAll(".vol-btn");
+    volBtns.forEach(function(btn) {
         btn.classList.remove("bg-red-600","border-white","text-white","shadow-lg","shadow-red-900/50");
         btn.classList.add("bg-gray-700");
     });
-    const vol = firefighters[activeIndex].volume;
-    const btn = document.getElementById(`vol-${vol}`);
+    var vol = firefighters[activeIndex].volume;
+    var btn = document.getElementById("vol-" + vol);
     if (btn) {
         btn.classList.remove("bg-gray-700");
         btn.classList.add("bg-red-600","border-white","text-white","shadow-lg","shadow-red-900/50");
@@ -428,17 +450,18 @@ function highlightVolumeButtons() {
 
 // Destacar consumo
 function highlightConsumptionButtons() {
-    document.querySelectorAll(".cons-btn").forEach(btn => {
+    var consBtns = document.querySelectorAll(".cons-btn");
+    consBtns.forEach(function(btn) {
         btn.classList.remove("bg-red-600","border-white","text-white");
         btn.classList.add("bg-gray-700");
     });
-    const cons = firefighters[activeIndex].consumption;
-    const btn = document.getElementById(`cons-${cons}`);
+    var cons = firefighters[activeIndex].consumption;
+    var btn = document.getElementById("cons-" + cons);
     if (btn) {
         btn.classList.remove("bg-gray-700");
         btn.classList.add("bg-red-600","border-white","text-white");
     }
-    const label = cons === 45 ? "Intenso (45 L/min)" : "Moderado (40 L/min)";
+    var label = cons === 45 ? "Intenso (45 L/min)" : "Moderado (40 L/min)";
     consumptionDisplay.textContent = label;
 }
 
@@ -462,8 +485,8 @@ function setConsumption(c) {
 
 // Ajustar pressão
 function adjustPressure(delta) {
-    const f = firefighters[activeIndex];
-    let val = parseInt(pressureInput.value) || 0;
+    var f = firefighters[activeIndex];
+    var val = parseInt(pressureInput.value, 10) || 0;
     val += delta;
     if (val < 0) val = 0;
     if (val > 400) val = 400;
@@ -476,7 +499,7 @@ function adjustPressure(delta) {
 
 // Definir pressão direta
 function setPressure(val) {
-    const f = firefighters[activeIndex];
+    var f = firefighters[activeIndex];
     f.pressure = val;
     pressureInput.value = val;
     updateTimeAndBar();
@@ -484,30 +507,30 @@ function setPressure(val) {
     saveState();
 }
 
-// Quando o utilizador escreve na pressão
+// Atualizar pressão a partir do input
 function updatePressureInput() {
-    const f = firefighters[activeIndex];
-    f.pressure = parseInt(pressureInput.value) || 0;
+    var f = firefighters[activeIndex];
+    f.pressure = parseInt(pressureInput.value, 10) || 0;
     updateTimeAndBar();
     renderSummary();
     saveState();
 }
 
-// Calcula minutos teóricos (sem entrada ainda)
+// Calcula minutos teóricos
 function computePhysicalMinutes(f) {
-    const usefulPressure = Math.max(0, f.pressure - reservePressure);
-    const usefulLiters   = usefulPressure * f.volume;
-    const minutes        = usefulLiters / f.consumption;
+    var usefulPressure = Math.max(0, f.pressure - reservePressure);
+    var usefulLiters   = usefulPressure * f.volume;
+    var minutes        = usefulLiters / f.consumption;
     return Math.floor(minutes);
 }
 
-// Atualiza o tempo disponível e a barra
+// Atualiza tempo e barra
 function updateTimeAndBar() {
-    const f = firefighters[activeIndex];
+    var f = firefighters[activeIndex];
 
-    let minutes;
+    var minutes;
     if (f.entryTimestamp && f.initialMinutes != null && f.inWork) {
-        const elapsed = (Date.now() - f.entryTimestamp) / 60000;
+        var elapsed = (Date.now() - f.entryTimestamp) / 60000;
         minutes = Math.max(0, Math.floor(f.initialMinutes - elapsed));
         f.remainingMinutes = minutes;
     } else {
@@ -516,9 +539,13 @@ function updateTimeAndBar() {
         f.initialMinutes   = minutes;
     }
 
-    resultMinutesEl.textContent = isNaN(minutes) ? "00" : String(minutes).padStart(2,"0");
+    if (isNaN(minutes)) {
+        resultMinutesEl.textContent = "00";
+    } else {
+        resultMinutesEl.textContent = String(minutes).padStart(2, "0");
+    }
 
-    let pct = 100;
+    var pct = 100;
     if (f.initialMinutes && f.initialMinutes > 0) {
         pct = Math.max(0, Math.min(100, (minutes / f.initialMinutes) * 100));
     }
@@ -533,24 +560,55 @@ function updateTimeAndBar() {
     }
 }
 
+// Carregar estado do bombeiro ativo
+function renderUI() {
+    highlightTabs();
+
+    var f = firefighters[activeIndex];
+
+    nameInput.value = f.name || "";
+    pressureInput.value = f.pressure;
+    entryTimeEl.textContent = f.entryTimeStr;
+    exitTimeEl.textContent  = f.exitTimeStr;
+
+    highlightVolumeButtons();
+    highlightConsumptionButtons();
+
+    updateTimeAndBar();
+    renderSummary();
+}
+
 // Entrar Agora
 function enterNow() {
-    const f = firefighters[activeIndex];
-    const now = new Date();
+    var f = firefighters[activeIndex];
+    var now = new Date();
 
-    const minutes = computePhysicalMinutes(f);
+    var minutes = computePhysicalMinutes(f);
     if (minutes <= 0) return;
 
-    f.entryTimestamp = Date.now();
+    var entryTimestamp = Date.now();
+    f.entryTimestamp = entryTimestamp;
     f.initialMinutes = minutes;
     f.remainingMinutes = minutes;
     f.inWork = true;
 
     f.entryTimeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const exitTime = new Date(now.getTime() + minutes * 60000);
+    var exitTime = new Date(now.getTime() + minutes * 60000);
     f.exitTimeStr  = exitTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
     f.alertShown = false;
+
+    // Registo no histórico (não é apagado)
+    logs.push({
+        ffIndex: activeIndex,
+        name: f.name || ("Bombeiro " + (activeIndex + 1)),
+        volume: f.volume,
+        consumption: f.consumption,
+        pressure: f.pressure,
+        entryTimeStr: f.entryTimeStr,
+        exitTimeStr: f.exitTimeStr,
+        initialMinutes: minutes,
+        entryTimestamp: entryTimestamp
+    });
 
     entryTimeEl.textContent = f.entryTimeStr;
     exitTimeEl.textContent  = f.exitTimeStr;
@@ -566,9 +624,9 @@ function closePopup() {
     popupEl.classList.add("hidden");
 }
 
-// Limpar bombeiro (terminou o trabalho)
+// Limpar bombeiro
 function clearFirefighter(index) {
-    const f = firefighters[index];
+    var f = firefighters[index];
     f.entryTimestamp = null;
     f.initialMinutes = null;
     f.remainingMinutes = null;
@@ -577,7 +635,7 @@ function clearFirefighter(index) {
     f.alertShown = false;
     f.inWork = false;
 
-    if (activeIndex === index && activeView === 'ff') {
+    if (activeIndex === index && activeView === "ff") {
         entryTimeEl.textContent = f.entryTimeStr;
         exitTimeEl.textContent  = f.exitTimeStr;
         updateTimeAndBar();
@@ -589,10 +647,10 @@ function clearFirefighter(index) {
 
 // Reset Geral
 function resetAll() {
-    if (!confirm("Tem a certeza que pretende limpar todos os dados de todos os bombeiros?")) return;
+    if (!confirm("Tem a certeza que pretende limpar todos os dados de todos os bombeiros e histórico?")) return;
 
-    for (let i = 0; i < NUM_FF; i++) {
-        const f = firefighters[i];
+    for (var i = 0; i < NUM_FF; i++) {
+        var f = firefighters[i];
         f.name = "";
         f.volume = 6.8;
         f.consumption = 45;
@@ -606,8 +664,12 @@ function resetAll() {
         f.inWork = false;
     }
 
+    logs.length = 0;
+    observations = "";
+    obsTextEl.value = "";
+
     activeIndex = 0;
-    activeView  = 'ff';
+    activeView  = "ff";
     localStorage.removeItem(STORAGE_KEY);
 
     renderUI();
@@ -616,89 +678,202 @@ function resetAll() {
     renderSummary();
 }
 
-// Render resumo dos bombeiros em trabalho
+// Render resumo
 function renderSummary() {
-    let rows = [];
+    var rows = [];
 
-    for (let i = 0; i < NUM_FF; i++) {
-        const f = firefighters[i];
+    for (var i = 0; i < NUM_FF; i++) {
+        var f = firefighters[i];
         if (!f.inWork) continue;
 
-        let remaining = f.remainingMinutes;
-        let elapsed   = 0;
+        var remaining = f.remainingMinutes;
+        var elapsed   = 0;
 
         if (f.entryTimestamp && f.initialMinutes != null) {
-            const diffMin = (Date.now() - f.entryTimestamp) / 60000;
+            var diffMin = (Date.now() - f.entryTimestamp) / 60000;
             elapsed = Math.max(0, Math.floor(diffMin));
             remaining = Math.max(0, Math.floor(f.initialMinutes - diffMin));
             f.remainingMinutes = remaining;
         } else {
-            remaining = remaining ?? computePhysicalMinutes(f);
+            remaining = remaining != null ? remaining : computePhysicalMinutes(f);
         }
 
         rows.push({
             index: i,
-            name: f.name || `Bombeiro ${i+1}`,
-            remaining,
-            elapsed,
+            name: f.name || ("Bombeiro " + (i + 1)),
+            remaining: remaining,
+            elapsed: elapsed,
             exitTime: f.exitTimeStr
         });
     }
 
-    rows.sort((a, b) => a.remaining - b.remaining);
+    rows.sort(function(a, b) { return a.remaining - b.remaining; });
 
     if (rows.length === 0) {
-        summaryListEl.innerHTML = "<p class='text-gray-500 text-xs'>Nenhum bombeiro em trabalho.</p>";
+        summaryListEl.innerHTML = "<p class='text-gray-500 text-xs'>Nenhum em trabalho.</p>";
         return;
     }
 
-    let html = `
-        <div class="grid grid-cols-6 text-[11px] font-bold text-gray-300 border-b border-gray-700 pb-1 mb-2">
-            <div>#</div>
-            <div>Nome</div>
-            <div>Decorr.</div>
-            <div>Restante</div>
-            <div>Saída</div>
-            <div></div>
-        </div>
-    `;
+    var html = ""
+        + "<div class='grid grid-cols-6 text-[11px] font-bold text-gray-300 border-b border-gray-700 pb-1 mb-2'>"
+        + "  <div>#</div>"
+        + "  <div>Nome</div>"
+        + "  <div>Trabalho</div>"
+        + "  <div>Restante</div>"
+        + "  <div>Saída</div>"
+        + "  <div></div>"
+        + "</div>";
 
-    rows.forEach(r => {
-        const shownRemaining = Math.max(0, r.remaining);
-        const critico = shownRemaining <= 5 && shownRemaining > 0;
-        const tempoClass =
-            critico ? 'text-red-400 font-bold' :
-            (shownRemaining <= 10 ? 'text-orange-300' : 'text-green-300');
+    rows.forEach(function(r) {
+        var shownRemaining = Math.max(0, r.remaining);
+        var critico = shownRemaining <= 5 && shownRemaining > 0;
+        var tempoClass;
+        if (critico) {
+            tempoClass = "text-red-400 font-bold";
+        } else if (shownRemaining <= 10) {
+            tempoClass = "text-orange-300";
+        } else {
+            tempoClass = "text-green-300";
+        }
 
-        html += `
-        <div class="grid grid-cols-6 text-[11px] items-center py-1 border-b border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-700/40"
-             onclick="goToFirefighter(${r.index})">
-            <div class="font-bold text-red-300">${r.index+1}</div>
-            <div class="truncate pr-1">${r.name}</div>
-            <div class="text-gray-200">${r.elapsed} min</div>
-            <div class="${tempoClass}">
-                ${shownRemaining} min ${critico ? '🔥' : ''}
-            </div>
-            <div class="font-mono text-gray-200 text-right">${r.exitTime}</div>
-            <div class="text-right">
-                <button onclick="event.stopPropagation(); clearFirefighter(${r.index})"
-                        class="bg-gray-700 hover:bg-gray-600 text-[10px] px-2 py-1 rounded">
-                    Limpar
-                </button>
-            </div>
-        </div>`;
+        html += ""
+        + "<div class='grid grid-cols-6 text-[11px] items-center py-1 border-b border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-700/40'"
+        + "     onclick='goToFirefighter(" + r.index + ")'>"
+        + "  <div class='font-bold text-red-300'>" + (r.index + 1) + "</div>"
+        + "  <div class='truncate pr-1'>" + r.name + "</div>"
+        + "  <div class='text-gray-200'>" + r.elapsed + " min</div>"
+        + "  <div class='" + tempoClass + "'>"
+        +       shownRemaining + " min " + (critico ? "🔥" : "")
+        + "  </div>"
+        + "  <div class='font-mono text-gray-200 text-right'>" + r.exitTime + "</div>"
+        + "  <div class='text-right'>"
+        + "    <button onclick='event.stopPropagation(); clearFirefighter(" + r.index + ")'"
+        + "            class='bg-gray-700 hover:bg-gray-600 text-[10px] px-2 py-1 rounded'>"
+        + "      Limpar"
+        + "    </button>"
+        + "  </div>"
+        + "</div>";
     });
 
     summaryListEl.innerHTML = html;
 }
 
+// Exportar PDF (via janela de impressão)
+function exportPDF() {
+    if (logs.length === 0) {
+        alert("Não existem registos para exportar.");
+        return;
+    }
+
+    var now = Date.now();
+    var nowStr = new Date().toLocaleString("pt-PT");
+
+    var rowsHtml = "";
+
+    logs.forEach(function(log, idx) {
+        var ts = log.entryTimestamp || now;
+        var d = new Date(ts);
+        var dateStr = d.toLocaleDateString("pt-PT");
+        var timeStr = log.entryTimeStr || d.toLocaleTimeString("pt-PT", {hour:"2-digit",minute:"2-digit"});
+
+        var diffMin = Math.max(0, Math.floor((now - ts) / 60000));
+        var remaining = Math.max(0, Math.floor((log.initialMinutes || 0) - diffMin));
+
+        rowsHtml += ""
+        + "<tr>"
+        + "  <td>" + (idx + 1) + "</td>"
+        + "  <td>" + (log.ffIndex + 1) + "</td>"
+        + "  <td>" + (log.name || "") + "</td>"
+        + "  <td>" + dateStr + "</td>"
+        + "  <td>" + timeStr + "</td>"
+        + "  <td>" + (log.exitTimeStr || "") + "</td>"
+        + "  <td>" + (log.initialMinutes != null ? log.initialMinutes : "") + "</td>"
+        + "  <td>" + diffMin + "</td>"
+        + "  <td>" + remaining + "</td>"
+        + "  <td>" + log.volume + "</td>"
+        + "  <td>" + log.consumption + "</td>"
+        + "  <td>" + log.pressure + "</td>"
+        + "</tr>";
+    });
+
+    var obsHtml = observations
+        ? ("<h2>Observações</h2><p>" + observations.replace(/\n/g, "<br>") + "</p>")
+        : "<h2>Observações</h2><p>Sem observações.</p>";
+
+    var html = ""
+    + "<!DOCTYPE html>"
+    + "<html lang='pt-PT'>"
+    + "<head>"
+    + "<meta charset='utf-8'>"
+    + "<title>Relatório ARICAS</title>"
+    + "<style>"
+    + "body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; margin: 20px; color:#111827; }"
+    + "h1 { font-size: 20px; margin-bottom: 4px; }"
+    + "h2 { font-size: 14px; margin-top: 16px; margin-bottom: 6px; }"
+    + "table { width: 100%; border-collapse: collapse; margin-top: 8px; }"
+    + "th, td { border: 1px solid #9ca3af; padding: 4px 6px; text-align: left; }"
+    + "th { background:#e5e7eb; font-weight: 600; }"
+    + ".small { font-size: 10px; color:#6b7280; }"
+    + ".header-line { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px; }"
+    + "</style>"
+    + "</head>"
+    + "<body>"
+    + "  <div class='header-line'>"
+    + "    <div>"
+    + "      <h1>Relatório ARICAS</h1>"
+    + "      <div class='small'>Gerado em " + nowStr + "</div>"
+    + "      <div class='small'>SCh2ª João Paulo Pereira - Companhia Bombeiros Sapadores Leiria</div>"
+    + "    </div>"
+    + "  </div>"
+
+    + "  " + obsHtml
+
+    + "  <h2>Registo de Entradas e Saídas</h2>"
+    + "  <table>"
+    + "    <thead>"
+    + "      <tr>"
+    + "        <th># Registo</th>"
+    + "        <th>Nº</th>"
+    + "        <th>Nome</th>"
+    + "        <th>Data</th>"
+    + "        <th>Hora Entrada</th>"
+    + "        <th>Hora Saída</th>"
+    + "        <th>Tempo Previsto (min)</th>"
+    + "        <th>Trabalho (min)</th>"
+    + "        <th>Restante (min)</th>"
+    + "        <th>Volume (L)</th>"
+    + "        <th>Consumo (L/min)</th>"
+    + "        <th>Pressão Inicial (bar)</th>"
+    + "      </tr>"
+    + "    </thead>"
+    + "    <tbody>"
+    +          rowsHtml
+    + "    </tbody>"
+    + "  </table>"
+
+    + "  <script>"
+    + "    window.onload = function(){ window.print(); };"
+    + "  <\/script>"
+    + "</body>"
+    + "</html>";
+
+    var win = window.open("", "_blank");
+    if (!win) {
+        alert("O navegador bloqueou a janela de impressão. Permita pop-ups para exportar o PDF.");
+        return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+}
+
 // Verificação periódica (cada minuto)
-setInterval(() => {
-    for (let i = 0; i < NUM_FF; i++) {
-        const f = firefighters[i];
+setInterval(function() {
+    for (var i = 0; i < NUM_FF; i++) {
+        var f = firefighters[i];
         if (f.entryTimestamp && f.initialMinutes != null && f.inWork) {
-            const elapsed = (Date.now() - f.entryTimestamp) / 60000;
-            const remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
+            var elapsed = (Date.now() - f.entryTimestamp) / 60000;
+            var remaining = Math.max(0, Math.floor(f.initialMinutes - elapsed));
             f.remainingMinutes = remaining;
 
             if (remaining <= 5 && !f.alertShown) {
@@ -709,16 +884,16 @@ setInterval(() => {
 
                 if (notificationsEnabled && "Notification" in window) {
                     try {
-                        new Notification(`🚨 Bombeiro ${i+1}`, {
-                            body: "Menos de 5 minutos de ar disponível!",
+                        new Notification("🚨 " + (i + 1), {
+                            body: "tem menos de 5 minutos de ar disponível!"
                         });
                     } catch(e) {}
                 }
 
-                popupTextEl.textContent = `Bombeiro ${i+1} tem menos de 5 minutos!`;
+                popupTextEl.textContent = (i + 1) + " tem menos de 5 minutos!";
                 popupEl.classList.remove("hidden");
 
-                alert(`Bombeiro ${i+1} com autonomia crítica!`);
+                alert((i + 1) + " com autonomia crítica!");
             }
         }
     }
