@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calculadora ARICA´s - CBSLeiria</title>
+    <title>Calculadora ARICA´s -CBSLeiria</title>
     <link rel="icon" href="favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -12,11 +12,10 @@
 <body class="min-h-screen flex flex-col items-center pb-10 bg-gray-900 text-white">
 
 <header class="w-full bg-red-700 p-4 shadow-lg flex items-center justify-center gap-3">
-    <i data-lucide="flame" class="text-yellow-400 w-8 h-8"></i>
+    <img src="logo.png" alt="Logo CBS Leiria" class="h-12 w-auto object-contain">
     <h1 class="text-2xl font-bold tracking-wider text-white">ARICA´s - CBSLeiria</h1>
 </header>
 
-<!-- TABS DOS 6 BOMBEIROS + RESUMO -->
 <div class="w-full max-w-md mt-4 px-4 flex justify-between gap-1" id="tabs-container">
     <button id="tab-1" onclick="selectFF(1)" class="flex-1 py-2 rounded bg-red-600 border-2 border-white text-white text-sm font-bold">
         1
@@ -26,25 +25,21 @@
     <button id="tab-4" onclick="selectFF(4)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">4</button>
     <button id="tab-5" onclick="selectFF(5)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">5</button>
     <button id="tab-6" onclick="selectFF(6)" class="flex-1 py-2 rounded bg-gray-700 text-white text-sm font-bold">6</button>
-    <!-- Tab de RESUMO com ícone -->
     <button id="tab-summary" onclick="selectSummaryTab()" class="flex-1 py-2 rounded bg-gray-800 text-gray-200 text-xs font-bold flex items-center justify-center gap-1">
         <i data-lucide="list" class="w-4 h-4"></i>
     </button>
 </div>
 
-<!-- VISTA PRINCIPAL (BOMBEIROS) -->
 <main id="ff-view" class="w-full max-w-md px-4 mt-6 space-y-6">
 
-    <!-- Nome -->
     <section class="bg-gray-800 p-4 rounded-xl border border-gray-700">
         <label class="block text-gray-400 text-sm mb-1">Nome</label>
         <input id="ff-name" type="text"
                class="w-full bg-gray-900 p-2 rounded border border-gray-700"
-               placeholder=""
+               placeholder="Ex: João Paulo"
                oninput="updateName(this.value)">
     </section>
 
-    <!-- 1. Volume da Garrafa -->
     <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
         <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">
             1. Volume da Garrafa
@@ -65,7 +60,6 @@
         </div>
     </section>
 
-    <!-- 2. Consumo de Ar (Esforço) -->
     <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
         <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide flex justify-between">
             <span>2. Ritmo de Trabalho</span>
@@ -83,7 +77,6 @@
         </div>
     </section>
 
-    <!-- 3. Pressão Atual -->
     <section class="bg-gray-800 rounded-xl p-5 border border-gray-700">
         <label class="block text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">
             3. Pressão de Entrada (Bar)
@@ -108,7 +101,6 @@
             </button>
         </div>
 
-        <!-- Quick Presets -->
         <div class="flex justify-center gap-2 mt-4">
             <button onclick="setPressure(300)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">300</button>
             <button onclick="setPressure(280)" class="bg-gray-700 px-3 py-1 rounded text-sm text-gray-300">280</button>
@@ -117,7 +109,6 @@
         </div>
     </section>
 
-    <!-- RESULTADOS + BARRA DE PROGRESSO -->
     <section class="bg-gray-900 rounded-xl p-6 border border-gray-700 text-center">
         <p class="text-gray-400 text-sm uppercase tracking-widest mb-1">Tempo Disponível</p>
         <div class="flex items-baseline justify-center gap-1">
@@ -132,7 +123,6 @@
         </div>
     </section>
 
-    <!-- Controlo de Entrada -->
     <section class="bg-blue-900/20 border border-blue-800/50 rounded-xl p-5">
         <div class="flex items-center justify-between mb-2">
             <h3 class="text-blue-200 font-bold flex items-center gap-2">
@@ -156,7 +146,6 @@
     </section>
 </main>
 
-<!-- VISTA RESUMO (TAB R) -->
 <section id="summary-view" class="w-full max-w-md px-4 mt-6 hidden">
     <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-2">
         <i data-lucide="list" class="w-4 h-4"></i>
@@ -167,7 +156,6 @@
         <p class="text-gray-500 text-xs">Nenhum em trabalho.</p>
     </div>
 
-    <!-- Observações -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-3 mb-3">
         <label class="block text-xs font-bold text-gray-300 mb-1">Observações para o relatório</label>
         <textarea id="obs-text"
@@ -176,7 +164,6 @@
                   oninput="updateObservations(this.value)"></textarea>
     </section>
 
-    <!-- Botões no Resumo -->
     <div class="flex justify-between mt-1 gap-2">
         <button onclick="exportPDF()"
                 class="flex-1 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-1 rounded font-bold flex items-center justify-center gap-1">
@@ -189,7 +176,6 @@
     </div>
 </section>
 
-<!-- Popup Customizado -->
 <div id="critical-popup" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden">
   <div class="bg-red-700 p-6 rounded-xl shadow-xl text-center max-w-xs border-2 border-white">
     <h2 class="text-2xl font-bold mb-3">⚠️ ALERTA CRÍTICO ⚠️</h2>
@@ -198,7 +184,6 @@
   </div>
 </div>
 
-<!-- RODAPÉ -->
 <footer class="w-full mt-8 px-4 text-center text-xs text-gray-500 leading-relaxed">
     SCh2ª João Paulo Pereira<br>
     Companhia Bombeiros Sapadores Leiria<br>
@@ -936,8 +921,11 @@ setInterval(() => {
                     } catch(e) {}
                 }
 
-                popupTextEl.textContent = (i + 1) + " tem menos de 5 minutos!";
-                popupEl.classList.remove("hidden");
+                popupTextEl = document.getElementById("popup-text"); // Correcção rápida para garantir que apanha o elemento
+                const popupEl = document.getElementById("critical-popup");
+                
+                if(popupTextEl) popupTextEl.textContent = (i + 1) + " tem menos de 5 minutos!";
+                if(popupEl) popupEl.classList.remove("hidden");
 
                 alert((i + 1) + " com autonomia crítica!");
             }
@@ -958,6 +946,3 @@ updateViewVisibility();
 
 </body>
 </html>
-
-
-
